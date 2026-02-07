@@ -1,0 +1,14 @@
+*.test
+
+*.out
+coverage.*
+*.coverprofile
+profile.cov
+
+vendor/
+
+.idea/
+.vscode/
+
+.env
+.env.testing
