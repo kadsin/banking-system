@@ -6,6 +6,7 @@ import (
 	"github.com/kadsin/banking-system/internal/datalayer"
 	"github.com/kadsin/banking-system/internal/server"
 	"github.com/kadsin/banking-system/internal/server/middlewares"
+	"github.com/kadsin/banking-system/internal/service"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -31,10 +32,11 @@ func SetupFiberApp() *fiber.App {
 	)
 
 	accounts := datalayer.NewAccountRepository()
+	txs := datalayer.NewTransactionRepository()
 	server.SetupRoutes(app, &server.Dependencies{
 		Accounts:   accounts,
-		Txs:        nil,
-		Transferer: nil,
+		Txs:        txs,
+		Transferer: service.NewTransferService(accounts, txs),
 	})
 
 	return app
