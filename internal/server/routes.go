@@ -27,6 +27,7 @@ func SetupRoutes(app *fiber.App, deps *Dependencies) {
 	transactionHandler := handlers.NewTransactionHandler(deps.Txs, deps.Transferer)
 	api.Post("/transactions/transfer", transactionHandler.Transfer)
 	api.Get("/transactions/:id", transactionHandler.GetByID)
+	api.Get("/transactions/:account_id/history", transactionHandler.History)
 }
 
 func setupSwagger(router fiber.Router) {

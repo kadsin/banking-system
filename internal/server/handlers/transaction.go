@@ -79,3 +79,17 @@ func (h *TransactionHandler) GetByID(c *fiber.Ctx) error {
 
 	return c.JSON(tx)
 }
+
+func (h *TransactionHandler) History(c *fiber.Ctx) error {
+	accountID := c.Params("account_id")
+	if _, err := uuid.Parse(accountID); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "account_id must be a valid UUID")
+	}
+
+	history, err := h.txRepo.ListByAccountID(accountID)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(history)
+}

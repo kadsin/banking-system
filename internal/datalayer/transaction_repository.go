@@ -44,6 +44,20 @@ func (r *TransactionRepository) GetByID(id string) (domain.Transaction, error) {
 	return transaction, nil
 }
 
+func (r *TransactionRepository) ListByAccountID(accountID string) ([]domain.Transaction, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	history := make([]domain.Transaction, 0)
+	for _, transaction := range r.transactions {
+		if transaction.FromAccountID == accountID || transaction.ToAccountID == accountID {
+			history = append(history, transaction)
+		}
+	}
+
+	return history, nil
+}
+
 func (r *TransactionRepository) GetByIdempotencyKey(key string) (domain.Transaction, bool, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
