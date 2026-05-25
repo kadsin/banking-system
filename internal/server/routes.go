@@ -5,12 +5,24 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/basicauth"
 	"github.com/gofiber/swagger"
 	"github.com/kadsin/banking-system/config"
+	"github.com/kadsin/banking-system/internal/contracts"
+	"github.com/kadsin/banking-system/internal/server/handlers"
 )
 
-func SetupRoutes(app *fiber.App) {
+type Dependencies struct {
+	Accounts   contracts.AccountRepository
+	Txs        contracts.TransactionRepository
+	Transferer contracts.TransferService
+}
+
+func SetupRoutes(app *fiber.App, deps *Dependencies) {
 	setupSwagger(app.Group("/docs"))
 
-	// api := app.Group("/api")
+	api := app.Group("/api")
+
+	accountHandler := handlers.NewAccountHandler(deps.Accounts)
+	api.Post("/accounts", accountHandler.Create)
+	api.Get("/accounts/:id", accountHandler.GetByID)
 }
 
 func setupSwagger(router fiber.Router) {

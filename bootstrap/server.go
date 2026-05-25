@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"time"
 
+	"github.com/kadsin/banking-system/internal/datalayer"
 	"github.com/kadsin/banking-system/internal/server"
 	"github.com/kadsin/banking-system/internal/server/middlewares"
 
@@ -29,7 +30,12 @@ func SetupFiberApp() *fiber.App {
 		middlewares.ResponseWrapper,
 	)
 
-	server.SetupRoutes(app)
+	accounts := datalayer.NewAccountRepository()
+	server.SetupRoutes(app, &server.Dependencies{
+		Accounts:   accounts,
+		Txs:        nil,
+		Transferer: nil,
+	})
 
 	return app
 }
