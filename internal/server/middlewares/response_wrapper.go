@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -19,6 +20,14 @@ type jsonApiErrorObject struct {
 func ResponseWrapper(c *fiber.Ctx) error {
 	err := c.Next()
 	if err != nil {
+		statusCode := fiber.StatusInternalServerError
+		var fiberErr *fiber.Error
+		if errors.As(err, &fiberErr) {
+			statusCode = fiberErr.Code
+		}
+
+		c.Status(statusCode)
+
 		return c.JSON(jsonApiResponse{
 			Errors: []*jsonApiErrorObject{
 				{Detail: err.Error()},

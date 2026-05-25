@@ -46,4 +46,9 @@ var Env struct {
 			Password string `env:"DOC_AUTH_PASSWORD"`
 		}
 	}
+
+	Auth struct {
+		JWTSecret         string `env:"AUTH_JWT_SECRET"`
+		AccessTokenTTLMin int    `env:"AUTH_ACCESS_TTL_MIN,default=60"`
+	}
 }

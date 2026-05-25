@@ -7,6 +7,7 @@ import (
 	"github.com/kadsin/banking-system/config"
 	"github.com/kadsin/banking-system/internal/contracts"
 	"github.com/kadsin/banking-system/internal/server/handlers"
+	"github.com/kadsin/banking-system/internal/server/middlewares"
 )
 
 type Dependencies struct {
@@ -20,14 +21,19 @@ func SetupRoutes(app *fiber.App, deps *Dependencies) {
 
 	api := app.Group("/api")
 
+	authHandler := handlers.NewAuthHandler()
+	api.Post("/login", authHandler.Login)
+
+	auth := api.Group("", middlewares.RequireAuth)
+
 	accountHandler := handlers.NewAccountHandler(deps.Accounts)
-	api.Post("/accounts", accountHandler.Create)
-	api.Get("/accounts/:id", accountHandler.GetByID)
+	auth.Post("/accounts", accountHandler.Create)
+	auth.Get("/accounts/:id", accountHandler.GetByID)
 
 	transactionHandler := handlers.NewTransactionHandler(deps.Txs, deps.Transferer)
-	api.Post("/transactions/transfer", transactionHandler.Transfer)
-	api.Get("/transactions/:id", transactionHandler.GetByID)
-	api.Get("/transactions/:account_id/history", transactionHandler.History)
+	auth.Post("/transactions/transfer", transactionHandler.Transfer)
+	auth.Get("/transactions/:id", transactionHandler.GetByID)
+	auth.Get("/transactions/:account_id/history", transactionHandler.History)
 }
 
 func setupSwagger(router fiber.Router) {
