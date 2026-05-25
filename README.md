@@ -86,6 +86,10 @@ graph LR
 
 This architecture uses **Kong** as the Gateway so that all requests have a unique **Request ID**. This ID is stored and propagated through the system, allowing us to trace logs effectively. Additionally, we use **Sentry** for real-time exception tracking and **Prometheus** for monitoring system health and consumer lag.
 
+### Notes
+
+- To increase performance and reduce latency, we can implement an active-active replication model (region based) for the core database.
+
 ### Full System Diagram
 
 ```mermaid
