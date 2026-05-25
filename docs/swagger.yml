@@ -1,0 +1,332 @@
+openapi: 3.0.3
+info:
+  title: Banking System API
+  version: 1.0.0
+  description: Structural banking backend API.
+servers:
+  - url: http://127.0.0.1:3000
+security:
+  - bearerAuth: []
+paths:
+  /api/login:
+    post:
+      summary: Create login token
+      operationId: login
+      tags:
+        - Auth
+      security: []
+      responses:
+        '201':
+          description: Login token created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+  /api/accounts:
+    post:
+      summary: Create bank account
+      operationId: createAccount
+      tags:
+        - Accounts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccountRequest'
+      responses:
+        '201':
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid bearer token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/accounts/{id}:
+    get:
+      summary: Retrieve account details
+      operationId: getAccountById
+      tags:
+        - Accounts
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Account details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+        '400':
+          description: Invalid id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid bearer token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/transactions/transfer:
+    post:
+      summary: Transfer money between accounts
+      operationId: transferMoney
+      tags:
+        - Transactions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferRequest'
+      responses:
+        '202':
+          description: Transfer accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid bearer token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Blocked account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Insufficient funds
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/transactions/{id}:
+    get:
+      summary: Get transaction by id
+      operationId: getTransactionById
+      tags:
+        - Transactions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Transaction details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '400':
+          description: Invalid id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid bearer token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/transactions/{account_id}/history:
+    get:
+      summary: View transaction history for an account
+      operationId: getTransactionHistory
+      tags:
+        - Transactions
+      parameters:
+        - name: account_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Transaction history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionHistoryResponse'
+        '400':
+          description: Invalid account id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid bearer token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    CreateAccountRequest:
+      type: object
+      required:
+        - currency
+      properties:
+        currency:
+          type: string
+          example: USD
+        balance:
+          type: integer
+          format: int64
+          example: 100000
+    TransferRequest:
+      type: object
+      required:
+        - from_account
+        - to_account
+        - amount
+        - idempotency_key
+      properties:
+        from_account:
+          type: string
+          format: uuid
+          example: 3174b24d-6e3d-4f0a-beb2-565329f146df
+        to_account:
+          type: string
+          format: uuid
+          example: 06a3f16e-0e93-4fb5-bec7-40cc6f74ad7b
+        amount:
+          type: integer
+          format: int64
+          minimum: 1
+          example: 5000
+        idempotency_key:
+          type: string
+          example: transfer-2026-05-25-0001
+    LoginData:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT access token
+    Account:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        balance:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, BLOCKED]
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        from_account:
+          type: string
+          format: uuid
+        to_account:
+          type: string
+          format: uuid
+        amount:
+          type: integer
+          format: int64
+        status:
+          type: string
+          enum: [PENDING, COMPLETED, FAILED]
+        idempotency_key:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+    LoginResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/LoginData'
+    AccountResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Account'
+    TransactionResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Transaction'
+    TransactionHistoryResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+    ErrorItem:
+      type: object
+      properties:
+        detail:
+          type: string
+    ErrorResponse:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorItem'
