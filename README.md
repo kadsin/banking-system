@@ -1,6 +1,6 @@
 # Banking System
 
-I’ve spent the last few days reading about challenges in the banking system. It’s clear that these systems need high availability and strong consistency to satisfy users.
+I’ve spent the last few days reading about challenges in the banking system. It’s clear that these systems need high availability and strict consistency to satisfy users.
 
 Common issues include lack of reconciliation, double-spending, and bottlenecks in balance adjustments. While imagining a digital bank that could serve an entire country, I looked into architectures like the Digital Twin. I realized that most systems actually rely on eventual consistency, which seems to work well for them.
 
@@ -88,7 +88,8 @@ This architecture uses **Kong** as the Gateway so that all requests have a uniqu
 
 ### Notes
 
-- To increase performance and reduce latency, we can implement an active-active replication model (region based) for the core database.
+- To increase performance and reduce latency, we can implement an active-active (region-based) replication model for the core database; however, this will increase architectural complexity.
+- To ensure high-performance retrieval of transaction history, I have applied the CQRS pattern, integrating an OLAP database for use by the TX service.
 
 ### Full System Diagram
 
@@ -113,6 +114,7 @@ graph TD
     end
 
     GW -->|Request transfer| TX
+    TX -->|Get transactions| GW
     GW -->|Check balance| Bal
     GW -->|Get details| Acc
 
@@ -134,7 +136,11 @@ graph TD
     subgraph CoreSystem [Core Processing]
         Core[Core Worker]:::worker
         MainDB[(Main DB)]:::database
+        AnalyticsDB[(OLAP)]:::database
     end
+
+    Kafka -->|Read TXs| AnalyticsDB
+    AnalyticsDB -->|Get TX list| TX
 
     Kafka -->|Process TX| Core
     Core -->|Bulk add TXs| MainDB
