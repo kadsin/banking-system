@@ -47,3 +47,26 @@ func TestQueueCommitValidation(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestQueueFetchFromOffsetCommit(t *testing.T) {
+	q := New()
+
+	_, err := q.Publish("tx", []byte("a"))
+	require.NoError(t, err)
+	_, err = q.Publish("tx", []byte("b"))
+	require.NoError(t, err)
+	_, err = q.Publish("tx", []byte("c"))
+	require.NoError(t, err)
+
+	batch, err := q.FetchFromOffset("tx", 1, 10)
+	require.NoError(t, err)
+	require.Len(t, batch, 2)
+	require.Equal(t, int64(1), batch[0].Offset)
+	require.Equal(t, []byte("b"), batch[0].Value)
+	require.Equal(t, int64(2), batch[1].Offset)
+	require.Equal(t, []byte("c"), batch[1].Value)
+
+	normal, err := q.Fetch("tx", 10)
+	require.NoError(t, err)
+	require.Len(t, normal, 3)
+	require.Equal(t, int64(0), normal[0].Offset)
+}

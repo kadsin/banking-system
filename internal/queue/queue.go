@@ -67,9 +67,36 @@ func (q *Queue) Fetch(topic string, limit int) ([]Message, error) {
 		startOffset = 0
 	}
 
+	return q.fetchFromOffsetLocked(topic, startOffset, limit), nil
+}
+
+func (q *Queue) FetchFromOffset(topic string, offset int64, limit int) ([]Message, error) {
+	if topic == "" {
+		return nil, ErrEmptyTopic
+	}
+
+	if limit <= 0 {
+		return []Message{}, nil
+	}
+
+	if offset < 0 {
+		offset = 0
+	}
+
+	q.mu.RLock()
+	defer q.mu.RUnlock()
+
+	return q.fetchFromOffsetLocked(topic, offset, limit), nil
+}
+
+func (q *Queue) fetchFromOffsetLocked(topic string, startOffset int64, limit int) []Message {
+	if startOffset < 0 {
+		startOffset = 0
+	}
+
 	messages := q.messagesByTopic[topic]
 	if startOffset >= int64(len(messages)) {
-		return []Message{}, nil
+		return []Message{}
 	}
 
 	endOffset := startOffset + int64(limit)
@@ -85,7 +112,7 @@ func (q *Queue) Fetch(topic string, limit int) ([]Message, error) {
 		})
 	}
 
-	return result, nil
+	return result
 }
 
 func (q *Queue) Commit(topic string, offset int64) error {
