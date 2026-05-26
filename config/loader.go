@@ -47,6 +47,11 @@ var Env struct {
 		}
 	}
 
+	Topics struct {
+		Transactions string `env:"TOPIC_TRANSACTIONS"`
+		Failed       string `env:"TOPIC_FAILED"`
+	}
+
 	Auth struct {
 		JWTSecret         string `env:"AUTH_JWT_SECRET"`
 		AccessTokenTTLMin int    `env:"AUTH_ACCESS_TTL_MIN,default=60"`
