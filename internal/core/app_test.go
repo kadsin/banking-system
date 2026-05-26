@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -101,4 +102,35 @@ func TestRunPollsAndProcesses(t *testing.T) {
 	cancel()
 	err = <-done
 	require.ErrorIs(t, err, context.Canceled)
+}
+
+func TestPullAndProcessPublishesFailedEventOnAdjustmentError(t *testing.T) {
+	q := queue.New()
+	txRepo := datalayer.NewMainTransactionRepository()
+	ledgerRepo := &failingLedgerRepository{}
+	app := New(txRepo, ledgerRepo, q)
+
+	txTopic := config.Env.Topics.Transactions
+	failedTopic := config.Env.Topics.Failed
+
+	_, err := q.Publish(txTopic, []byte(`{"id":"tx-11","from_account":"z","to_account":"w","amount":10}`))
+	require.NoError(t, err)
+
+	n, err := app.PullAndProcess(10)
+	require.NoError(t, err)
+	require.Equal(t, 1, n)
+
+	failed, err := q.Fetch(failedTopic, 10)
+	require.NoError(t, err)
+	require.Len(t, failed, 1)
+}
+
+type failingLedgerRepository struct{}
+
+func (f *failingLedgerRepository) Adjust(accountID string, delta int64) error {
+	return errors.New("adjust failed")
+}
+
+func (f *failingLedgerRepository) Get(accountID string) (int64, error) {
+	return 0, nil
 }

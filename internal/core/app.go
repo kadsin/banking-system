@@ -68,13 +68,23 @@ func (a *App) PullAndProcess(limit int) (int, error) {
 		return 0, err
 	}
 
-	for _, tx := range transactions {
+	for i, tx := range transactions {
 		if err := a.balanceRepo.Adjust(tx.FromAccountID, -tx.Amount); err != nil {
-			return 0, err
+			transactions[i].Status = domain.TransactionStatusFailed
+
+			if err := a.publishFailed(transactions[i]); err != nil {
+				return 0, err
+			}
+			continue
 		}
 
 		if err := a.balanceRepo.Adjust(tx.ToAccountID, tx.Amount); err != nil {
-			return 0, err
+			transactions[i].Status = domain.TransactionStatusFailed
+
+			if err := a.publishFailed(transactions[i]); err != nil {
+				return 0, err
+			}
+			continue
 		}
 	}
 
@@ -84,4 +94,14 @@ func (a *App) PullAndProcess(limit int) (int, error) {
 	}
 
 	return len(transactions), nil
+}
+
+func (a *App) publishFailed(tx domain.Transaction) error {
+	payload, err := json.Marshal(tx)
+	if err != nil {
+		return err
+	}
+
+	_, err = a.q.Publish(config.Env.Topics.Failed, payload)
+	return err
 }
