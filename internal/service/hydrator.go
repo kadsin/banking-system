@@ -11,7 +11,7 @@ import (
 	"github.com/kadsin/banking-system/internal/queue"
 )
 
-func NewHydratorService(balances contracts.BalanceRepository, hydratorRepo contracts.HydratorRepository, q *queue.Queue, topic string) *hydratorService {
+func NewHydratorService(balances contracts.BalanceRepository, hydratorRepo contracts.HydratorRepository, q *queue.Queue) *hydratorService {
 	return &hydratorService{
 		balances: balances,
 		repo:     hydratorRepo,

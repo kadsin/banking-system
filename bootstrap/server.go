@@ -5,6 +5,7 @@ import (
 
 	"github.com/kadsin/banking-system/internal/cache"
 	"github.com/kadsin/banking-system/internal/datalayer"
+	"github.com/kadsin/banking-system/internal/queue"
 	"github.com/kadsin/banking-system/internal/server"
 	"github.com/kadsin/banking-system/internal/server/middlewares"
 	"github.com/kadsin/banking-system/internal/service"
@@ -39,6 +40,11 @@ func SetupFiberApp() *fiber.App {
 		Accounts:   accounts,
 		Txs:        txs,
 		Transferer: service.NewTransferService(accounts, txs, txIdempotency),
+		Hydrator: service.NewHydratorService(
+			datalayer.NewBalanceRepository(cache.New()),
+			datalayer.NewHydratorRepository(cache.New()),
+			queue.New(),
+		),
 	})
 
 	return app
