@@ -14,7 +14,6 @@ type Dependencies struct {
 	Accounts   contracts.AccountRepository
 	Txs        contracts.OlapRepository
 	Transferer contracts.TransferService
-	Hydrator   contracts.HydratorService
 }
 
 func SetupRoutes(app *fiber.App, deps *Dependencies) {
@@ -35,11 +34,6 @@ func SetupRoutes(app *fiber.App, deps *Dependencies) {
 	auth.Post("/transactions/transfer", transactionHandler.Transfer)
 	auth.Get("/transactions/:id", transactionHandler.GetByID)
 	auth.Get("/transactions/:account_id/history", transactionHandler.History)
-
-	// We assume that the internal routes are not visible to end users
-	internal := app.Group("/internal")
-	hydratorHandler := handlers.NewHydratorHandler(deps.Hydrator)
-	internal.Post("/hydrator/:account_id/repopulate", hydratorHandler.Repopulate)
 }
 
 func setupSwagger(router fiber.Router) {
