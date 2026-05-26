@@ -1,10 +1,12 @@
 package service
 
 import (
+	"encoding/json"
 	"errors"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/kadsin/banking-system/config"
 	"github.com/kadsin/banking-system/internal/contracts"
 	"github.com/kadsin/banking-system/internal/domain"
 )
@@ -14,10 +16,12 @@ var (
 	ErrAccountBlocked    = errors.New("account is blocked")
 )
 
-func NewTransferService(accounts contracts.AccountRepository, transactions contracts.OlapRepository, txIdempotency contracts.TxIdempotencyRepository) *transferService {
+func NewTransferService(accounts contracts.AccountRepository, transactions contracts.OlapRepository, balance contracts.BalanceService, outbox contracts.OutboxRepository, txIdempotency contracts.TxIdempotencyRepository) *transferService {
 	return &transferService{
 		accounts:      accounts,
 		transactions:  transactions,
+		balance:       balance,
+		outbox:        outbox,
 		idempotencies: txIdempotency,
 	}
 }
@@ -25,6 +29,8 @@ func NewTransferService(accounts contracts.AccountRepository, transactions contr
 type transferService struct {
 	accounts      contracts.AccountRepository
 	transactions  contracts.OlapRepository
+	balance       contracts.BalanceService
+	outbox        contracts.OutboxRepository
 	idempotencies contracts.TxIdempotencyRepository
 }
 
@@ -45,6 +51,10 @@ func (s *transferService) Transfer(input contracts.TransferInput) (domain.Transa
 		return domain.Transaction{}, err
 	}
 
+	if from.Status == domain.AccountStatusBlocked || to.Status == domain.AccountStatusBlocked {
+		return domain.Transaction{}, ErrAccountBlocked
+	}
+
 	transaction := domain.Transaction{
 		ID:             uuid.NewString(),
 		FromAccountID:  input.FromAccountID,
@@ -55,39 +65,31 @@ func (s *transferService) Transfer(input contracts.TransferInput) (domain.Transa
 		Timestamp:      time.Now().UTC(),
 	}
 
-	transaction, err = s.transactions.Create(transaction)
-	if err != nil {
+	if fromBalance, err := s.balance.Get(input.FromAccountID); err != nil {
 		return domain.Transaction{}, err
-	}
-	if err := s.idempotencies.Set(input.IdempotencyKey, transaction.ID); err != nil {
-		return domain.Transaction{}, err
-	}
-
-	if from.Status == domain.AccountStatusBlocked || to.Status == domain.AccountStatusBlocked {
-		_ = s.transactions.UpdateStatus(transaction.ID, domain.TransactionStatusFailed)
-		return domain.Transaction{}, ErrAccountBlocked
-	}
-
-	if from.Balance < input.Amount {
-		_ = s.transactions.UpdateStatus(transaction.ID, domain.TransactionStatusFailed)
+	} else if fromBalance < input.Amount {
 		return domain.Transaction{}, ErrInsufficientFunds
 	}
 
-	from.Balance -= input.Amount
-	if err := s.accounts.Update(from); err != nil {
+	payload, err := json.Marshal(transaction)
+	if err != nil {
 		return domain.Transaction{}, err
 	}
 
-	to.Balance += input.Amount
-	if err := s.accounts.Update(to); err != nil {
+	if _, err := s.outbox.Create(config.Env.Topics.Transactions, payload); err != nil {
 		return domain.Transaction{}, err
 	}
 
-	if err := s.transactions.UpdateStatus(transaction.ID, domain.TransactionStatusCompleted); err != nil {
+	if err := s.balance.Adjust(input.FromAccountID, -input.Amount); err != nil {
+		return domain.Transaction{}, err
+	}
+	if err := s.balance.Adjust(input.ToAccountID, input.Amount); err != nil {
 		return domain.Transaction{}, err
 	}
 
-	transaction.Status = domain.TransactionStatusCompleted
+	if err := s.idempotencies.Set(input.IdempotencyKey, transaction.ID); err != nil {
+		return domain.Transaction{}, err
+	}
 
 	return transaction, nil
 }

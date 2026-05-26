@@ -50,6 +50,10 @@ func resolveServerDependencies() *server.Dependencies {
 		Transferer: service.NewTransferService(
 			accounts,
 			txs,
+			service.NewBalanceService(
+				datalayer.NewLedgerRepository(cache.New()),
+			),
+			datalayer.NewOutboxRepository(),
 			datalayer.NewTxIdempotencyRepository(cache.New()),
 		),
 	}
