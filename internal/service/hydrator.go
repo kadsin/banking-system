@@ -11,18 +11,18 @@ import (
 	"github.com/kadsin/banking-system/internal/queue"
 )
 
-func NewHydratorService(balances contracts.BalanceRepository, hydratorRepo contracts.HydratorRepository, q *queue.Queue) *hydratorService {
+func NewHydratorService(ledger contracts.LedgerRepository, hydratorRepo contracts.HydratorRepository, q *queue.Queue) *hydratorService {
 	return &hydratorService{
-		balances: balances,
-		repo:     hydratorRepo,
-		q:        q,
+		ledger: ledger,
+		repo:   hydratorRepo,
+		q:      q,
 	}
 }
 
 type hydratorService struct {
-	balances contracts.BalanceRepository
-	repo     contracts.HydratorRepository
-	q        *queue.Queue
+	ledger contracts.LedgerRepository
+	repo   contracts.HydratorRepository
+	q      *queue.Queue
 }
 
 func (s *hydratorService) Repopulate(accountID string) (int64, error) {
@@ -43,7 +43,7 @@ func (s *hydratorService) Repopulate(accountID string) (int64, error) {
 		return 0, err
 	}
 
-	if err := s.balances.Set(accountID, currentBalance); err != nil {
+	if err := s.ledger.Set(accountID, currentBalance); err != nil {
 		return 0, err
 	}
 

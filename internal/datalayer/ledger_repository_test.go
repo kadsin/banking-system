@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestBalanceRepositorySetAndGet(t *testing.T) {
+func TestLedgerRepositorySetAndGet(t *testing.T) {
 	redis := cache.New()
-	repo := NewBalanceRepository(redis)
+	repo := NewLedgerRepository(redis)
 
 	err := redis.Set("acc-1", "0")
 	require.NoError(t, err)
@@ -22,16 +22,16 @@ func TestBalanceRepositorySetAndGet(t *testing.T) {
 	require.Equal(t, int64(1200), balance)
 }
 
-func TestBalanceRepositoryGetMissing(t *testing.T) {
-	repo := NewBalanceRepository(cache.New())
+func TestLedgerRepositoryGetMissing(t *testing.T) {
+	repo := NewLedgerRepository(cache.New())
 
 	_, err := repo.Get("missing")
 	require.ErrorIs(t, err, cache.ErrKeyNotFound)
 }
 
-func TestBalanceRepositoryAdjustDecrease(t *testing.T) {
+func TestLedgerRepositoryAdjustDecrease(t *testing.T) {
 	redis := cache.New()
-	repo := NewBalanceRepository(redis)
+	repo := NewLedgerRepository(redis)
 
 	err := redis.Set("acc-2", "1000")
 	require.NoError(t, err)
@@ -44,9 +44,9 @@ func TestBalanceRepositoryAdjustDecrease(t *testing.T) {
 	require.Equal(t, int64(750), balance)
 }
 
-func TestBalanceRepositoryAdjustInsufficientBalance(t *testing.T) {
+func TestLedgerRepositoryAdjustInsufficientBalance(t *testing.T) {
 	redis := cache.New()
-	repo := NewBalanceRepository(redis)
+	repo := NewLedgerRepository(redis)
 
 	err := redis.Set("acc-3", "100")
 	require.NoError(t, err)
@@ -59,8 +59,8 @@ func TestBalanceRepositoryAdjustInsufficientBalance(t *testing.T) {
 	require.Equal(t, int64(100), balance)
 }
 
-func TestBalanceRepositoryAdjustMissingAccount(t *testing.T) {
-	repo := NewBalanceRepository(cache.New())
+func TestLedgerRepositoryAdjustMissingAccount(t *testing.T) {
+	repo := NewLedgerRepository(cache.New())
 
 	err := repo.Adjust("missing", 100)
 	require.ErrorIs(t, err, cache.ErrKeyNotFound)

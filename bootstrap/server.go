@@ -53,7 +53,7 @@ func resolveServerDependencies() *server.Dependencies {
 			datalayer.NewTxIdempotencyRepository(cache.New()),
 		),
 		Hydrator: service.NewHydratorService(
-			datalayer.NewBalanceRepository(cache.New()),
+			datalayer.NewLedgerRepository(cache.New()),
 			datalayer.NewHydratorRepository(cache.New()),
 			q,
 		),

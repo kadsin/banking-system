@@ -10,15 +10,15 @@ import (
 var ErrInvalidBalanceValue = errors.New("invalid balance value")
 var ErrInsufficientBalance = errors.New("insufficient balance")
 
-func NewBalanceRepository(redis *cache.Cache) *BalanceRepository {
-	return &BalanceRepository{cache: redis}
+func NewLedgerRepository(redis *cache.Cache) *LedgerRepository {
+	return &LedgerRepository{cache: redis}
 }
 
-type BalanceRepository struct {
+type LedgerRepository struct {
 	cache *cache.Cache
 }
 
-func (r *BalanceRepository) Adjust(accountID string, delta int64) error {
+func (r *LedgerRepository) Adjust(accountID string, delta int64) error {
 	balance, err := r.Get(accountID)
 	if err != nil {
 		return err
@@ -32,7 +32,7 @@ func (r *BalanceRepository) Adjust(accountID string, delta int64) error {
 	return r.Set(accountID, balance)
 }
 
-func (r *BalanceRepository) Get(accountID string) (int64, error) {
+func (r *LedgerRepository) Get(accountID string) (int64, error) {
 	value, err := r.cache.Get(accountID)
 	if err != nil {
 		return 0, err
@@ -46,6 +46,6 @@ func (r *BalanceRepository) Get(accountID string) (int64, error) {
 	return balance, nil
 }
 
-func (r *BalanceRepository) Set(accountID string, balance int64) error {
+func (r *LedgerRepository) Set(accountID string, balance int64) error {
 	return r.cache.Set(accountID, strconv.FormatInt(balance, 10))
 }
