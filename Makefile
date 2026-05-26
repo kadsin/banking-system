@@ -4,9 +4,9 @@ init:
 	@echo - Installing dependencies ...
 	go mod download
 
-server:
-	@go build -o ./build/server ./cmd/server
-	@./build/server
+app:
+	@go build -o ./build/app ./cmd/app
+	@./build/app
 
 test\:help:
 	@printf "\
