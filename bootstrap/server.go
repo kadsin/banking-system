@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"time"
 
+	"github.com/kadsin/banking-system/internal/cache"
 	"github.com/kadsin/banking-system/internal/datalayer"
 	"github.com/kadsin/banking-system/internal/server"
 	"github.com/kadsin/banking-system/internal/server/middlewares"
@@ -33,10 +34,11 @@ func SetupFiberApp() *fiber.App {
 
 	accounts := datalayer.NewAccountRepository()
 	txs := datalayer.NewTransactionRepository()
+	txIdempotency := datalayer.NewTxIdempotencyRepository(cache.New())
 	server.SetupRoutes(app, &server.Dependencies{
 		Accounts:   accounts,
 		Txs:        txs,
-		Transferer: service.NewTransferService(accounts, txs),
+		Transferer: service.NewTransferService(accounts, txs, txIdempotency),
 	})
 
 	return app

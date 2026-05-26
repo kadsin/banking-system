@@ -14,23 +14,25 @@ var (
 	ErrAccountBlocked    = errors.New("account is blocked")
 )
 
-func NewTransferService(accounts contracts.AccountRepository, transactions contracts.TransactionRepository) *transferService {
+func NewTransferService(accounts contracts.AccountRepository, transactions contracts.TransactionRepository, txIdempotency contracts.TxIdempotencyRepository) *transferService {
 	return &transferService{
-		accounts:     accounts,
-		transactions: transactions,
+		accounts:      accounts,
+		transactions:  transactions,
+		idempotencies: txIdempotency,
 	}
 }
 
 type transferService struct {
-	accounts     contracts.AccountRepository
-	transactions contracts.TransactionRepository
+	accounts      contracts.AccountRepository
+	transactions  contracts.TransactionRepository
+	idempotencies contracts.TxIdempotencyRepository
 }
 
 func (s *transferService) Transfer(input contracts.TransferInput) (domain.Transaction, error) {
-	if existing, ok, err := s.transactions.GetByIdempotencyKey(input.IdempotencyKey); err != nil {
+	if existingTxID, ok, err := s.idempotencies.Get(input.IdempotencyKey); err != nil {
 		return domain.Transaction{}, err
 	} else if ok {
-		return existing, nil
+		return s.transactions.GetByID(existingTxID)
 	}
 
 	from, err := s.accounts.GetByID(input.FromAccountID)
@@ -55,6 +57,9 @@ func (s *transferService) Transfer(input contracts.TransferInput) (domain.Transa
 
 	transaction, err = s.transactions.Create(transaction)
 	if err != nil {
+		return domain.Transaction{}, err
+	}
+	if err := s.idempotencies.Set(input.IdempotencyKey, transaction.ID); err != nil {
 		return domain.Transaction{}, err
 	}
 
