@@ -11,7 +11,7 @@ import (
 	"github.com/kadsin/banking-system/internal/service"
 )
 
-func NewTransactionHandler(txRepo contracts.TransactionRepository, transfer contracts.TransferService) *TransactionHandler {
+func NewTransactionHandler(txRepo contracts.OlapRepository, transfer contracts.TransferService) *TransactionHandler {
 	return &TransactionHandler{
 		txRepo:   txRepo,
 		transfer: transfer,
@@ -19,7 +19,7 @@ func NewTransactionHandler(txRepo contracts.TransactionRepository, transfer cont
 }
 
 type TransactionHandler struct {
-	txRepo   contracts.TransactionRepository
+	txRepo   contracts.OlapRepository
 	transfer contracts.TransferService
 }
 

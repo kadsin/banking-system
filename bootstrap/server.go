@@ -33,19 +33,29 @@ func SetupFiberApp() *fiber.App {
 		middlewares.ResponseWrapper,
 	)
 
+	server.SetupRoutes(app, resolveServerDependencies())
+
+	return app
+}
+
+func resolveServerDependencies() *server.Dependencies {
+	q := queue.New()
+
 	accounts := datalayer.NewAccountRepository()
-	txs := datalayer.NewTransactionRepository()
-	txIdempotency := datalayer.NewTxIdempotencyRepository(cache.New())
-	server.SetupRoutes(app, &server.Dependencies{
-		Accounts:   accounts,
-		Txs:        txs,
-		Transferer: service.NewTransferService(accounts, txs, txIdempotency),
+	txs := datalayer.NewOlapRepository(q)
+
+	return &server.Dependencies{
+		Accounts: accounts,
+		Txs:      txs,
+		Transferer: service.NewTransferService(
+			accounts,
+			txs,
+			datalayer.NewTxIdempotencyRepository(cache.New()),
+		),
 		Hydrator: service.NewHydratorService(
 			datalayer.NewBalanceRepository(cache.New()),
 			datalayer.NewHydratorRepository(cache.New()),
-			queue.New(),
+			q,
 		),
-	})
-
-	return app
+	}
 }

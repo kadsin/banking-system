@@ -12,7 +12,7 @@ import (
 
 type Dependencies struct {
 	Accounts   contracts.AccountRepository
-	Txs        contracts.TransactionRepository
+	Txs        contracts.OlapRepository
 	Transferer contracts.TransferService
 	Hydrator   contracts.HydratorService
 }

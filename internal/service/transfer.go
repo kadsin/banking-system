@@ -14,7 +14,7 @@ var (
 	ErrAccountBlocked    = errors.New("account is blocked")
 )
 
-func NewTransferService(accounts contracts.AccountRepository, transactions contracts.TransactionRepository, txIdempotency contracts.TxIdempotencyRepository) *transferService {
+func NewTransferService(accounts contracts.AccountRepository, transactions contracts.OlapRepository, txIdempotency contracts.TxIdempotencyRepository) *transferService {
 	return &transferService{
 		accounts:      accounts,
 		transactions:  transactions,
@@ -24,7 +24,7 @@ func NewTransferService(accounts contracts.AccountRepository, transactions contr
 
 type transferService struct {
 	accounts      contracts.AccountRepository
-	transactions  contracts.TransactionRepository
+	transactions  contracts.OlapRepository
 	idempotencies contracts.TxIdempotencyRepository
 }
 
