@@ -10,8 +10,10 @@ import (
 var ErrInvalidBalanceValue = errors.New("invalid balance value")
 var ErrInsufficientBalance = errors.New("insufficient balance")
 
-func NewLedgerRepository(redis *cache.Cache) *LedgerRepository {
-	return &LedgerRepository{cache: redis}
+func NewLedgerRepository(c *cache.Cache) *LedgerRepository {
+	return &LedgerRepository{
+		cache: c,
+	}
 }
 
 type LedgerRepository struct {

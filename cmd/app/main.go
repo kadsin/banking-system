@@ -11,10 +11,17 @@ import (
 
 	"github.com/kadsin/banking-system/bootstrap"
 	"github.com/kadsin/banking-system/config"
+	"github.com/kadsin/banking-system/internal/server"
 )
 
 func main() {
-	app := bootstrap.SetupFiberApp()
+	container := bootstrap.InitContainer(context.TODO())
+
+	app := bootstrap.SetupFiberApp(&server.Dependencies{
+		Accounts:   container.AccountRepo,
+		Txs:        container.OlapRepo,
+		Transferer: container.TransferService,
+	})
 	addr := fmt.Sprintf(":%s", config.Env.App.Port)
 
 	go func() {

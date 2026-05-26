@@ -3,12 +3,8 @@ package bootstrap
 import (
 	"time"
 
-	"github.com/kadsin/banking-system/internal/cache"
-	"github.com/kadsin/banking-system/internal/datalayer"
-	"github.com/kadsin/banking-system/internal/queue"
 	"github.com/kadsin/banking-system/internal/server"
 	"github.com/kadsin/banking-system/internal/server/middlewares"
-	"github.com/kadsin/banking-system/internal/service"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -18,7 +14,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/timeout"
 )
 
-func SetupFiberApp() *fiber.App {
+func SetupFiberApp(deps *server.Dependencies) *fiber.App {
 	app := fiber.New(fiber.Config{
 		ErrorHandler: middlewares.ErrorHandler,
 	})
@@ -33,28 +29,7 @@ func SetupFiberApp() *fiber.App {
 		middlewares.ResponseWrapper,
 	)
 
-	server.SetupRoutes(app, resolveServerDependencies())
+	server.SetupRoutes(app, deps)
 
 	return app
-}
-
-func resolveServerDependencies() *server.Dependencies {
-	balance := service.NewBalanceService(
-		datalayer.NewLedgerRepository(cache.New()),
-	)
-
-	accounts := datalayer.NewAccountRepository(balance)
-	txs := datalayer.NewOlapRepository(queue.New())
-
-	return &server.Dependencies{
-		Accounts: accounts,
-		Txs:      txs,
-		Transferer: service.NewTransferService(
-			accounts,
-			txs,
-			balance,
-			datalayer.NewOutboxRepository(),
-			datalayer.NewTxIdempotencyRepository(cache.New()),
-		),
-	}
 }

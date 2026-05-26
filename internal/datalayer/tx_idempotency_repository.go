@@ -6,9 +6,9 @@ import (
 	"github.com/kadsin/banking-system/internal/cache"
 )
 
-func NewTxIdempotencyRepository(redis *cache.Cache) *TxIdempotencyRepository {
+func NewTxIdempotencyRepository(c *cache.Cache) *TxIdempotencyRepository {
 	return &TxIdempotencyRepository{
-		cache: redis,
+		cache: c,
 	}
 }
 
