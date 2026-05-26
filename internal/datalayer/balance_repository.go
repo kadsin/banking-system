@@ -29,7 +29,7 @@ func (r *BalanceRepository) Adjust(accountID string, delta int64) error {
 		return ErrInsufficientBalance
 	}
 
-	return r.cache.Set(accountID, strconv.FormatInt(balance, 10))
+	return r.Set(accountID, balance)
 }
 
 func (r *BalanceRepository) Get(accountID string) (int64, error) {
@@ -44,4 +44,8 @@ func (r *BalanceRepository) Get(accountID string) (int64, error) {
 	}
 
 	return balance, nil
+}
+
+func (r *BalanceRepository) Set(accountID string, balance int64) error {
+	return r.cache.Set(accountID, strconv.FormatInt(balance, 10))
 }
