@@ -5,14 +5,14 @@ import (
 	"github.com/kadsin/banking-system/internal/domain"
 )
 
-func NewBalanceService(ledger contracts.MainLedgerRepository) *balanceService {
+func NewBalanceService(ledger contracts.LedgerRepository) *balanceService {
 	return &balanceService{
 		ledger: ledger,
 	}
 }
 
 type balanceService struct {
-	ledger contracts.MainLedgerRepository
+	ledger contracts.LedgerRepository
 }
 
 func (s *balanceService) Get(accountID string) (int64, error) {

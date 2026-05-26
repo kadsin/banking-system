@@ -115,7 +115,7 @@ graph TD
 
     GW -->|Request transfer| TX
     TX -->|Get transactions| GW
-    GW -->|Check balance| Bal
+    Bal -->|Provide balance| Acc
     GW -->|Get details| Acc
 
     TX --- TXRedis[(TX Idempotency<br/>Redis)]:::cache
@@ -123,7 +123,7 @@ graph TD
     TX -->|2. Write event| Outbox[(Outbox DB)]:::database
 
     Bal -->|Atomic update| BalRedis[(Balance Redis)]:::cache
-    Bal -.->|Cache missed| Hyd
+    Bal -.->|Cache missed<br>Warmup my cache| Hyd
 
     subgraph AsyncStreaming [Event Streaming]
         CDC((Debezium CDC)):::cdc

@@ -4,20 +4,23 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/kadsin/banking-system/internal/contracts"
 	"github.com/kadsin/banking-system/internal/domain"
 )
 
 var ErrAccountNotFound = errors.New("account not found")
 
-func NewAccountRepository() *AccountRepository {
+func NewAccountRepository(balance contracts.BalanceService) *AccountRepository {
 	return &AccountRepository{
 		accounts: map[string]domain.Account{},
+		balance:  balance,
 	}
 }
 
 type AccountRepository struct {
 	mu       sync.RWMutex
 	accounts map[string]domain.Account
+	balance  contracts.BalanceService
 }
 
 func (r *AccountRepository) Create(account domain.Account) (domain.Account, error) {
@@ -35,6 +38,10 @@ func (r *AccountRepository) GetByID(id string) (domain.Account, error) {
 	account, ok := r.accounts[id]
 	if !ok {
 		return domain.Account{}, ErrAccountNotFound
+	}
+
+	if bal, err := r.balance.Get(id); err == nil {
+		account.Balance = bal
 	}
 
 	return account, nil

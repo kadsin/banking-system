@@ -39,10 +39,12 @@ func SetupFiberApp() *fiber.App {
 }
 
 func resolveServerDependencies() *server.Dependencies {
-	q := queue.New()
+	balance := service.NewBalanceService(
+		datalayer.NewLedgerRepository(cache.New()),
+	)
 
-	accounts := datalayer.NewAccountRepository()
-	txs := datalayer.NewOlapRepository(q)
+	accounts := datalayer.NewAccountRepository(balance)
+	txs := datalayer.NewOlapRepository(queue.New())
 
 	return &server.Dependencies{
 		Accounts: accounts,
@@ -50,9 +52,7 @@ func resolveServerDependencies() *server.Dependencies {
 		Transferer: service.NewTransferService(
 			accounts,
 			txs,
-			service.NewBalanceService(
-				datalayer.NewLedgerRepository(cache.New()),
-			),
+			balance,
 			datalayer.NewOutboxRepository(),
 			datalayer.NewTxIdempotencyRepository(cache.New()),
 		),

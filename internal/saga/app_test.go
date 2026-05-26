@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/kadsin/banking-system/config"
+	"github.com/kadsin/banking-system/internal/cache"
 	"github.com/kadsin/banking-system/internal/datalayer"
 	"github.com/kadsin/banking-system/internal/queue"
 	"github.com/kadsin/banking-system/internal/service"
@@ -14,8 +15,12 @@ import (
 
 func TestRunSagaAndRefunds(t *testing.T) {
 	q := queue.New()
-	ledger := datalayer.NewMainLedgerRepository()
+	ledger := datalayer.NewLedgerRepository(cache.New())
+	require.NoError(t, ledger.Set("x", 0))
+	require.NoError(t, ledger.Set("y", 0))
+
 	balanceService := service.NewBalanceService(ledger)
+
 	app := New(balanceService, q)
 
 	_, err := q.Publish(
@@ -24,8 +29,8 @@ func TestRunSagaAndRefunds(t *testing.T) {
 	)
 
 	require.NoError(t, err)
-	require.NoError(t, ledger.Adjust("x", 100))
-	require.NoError(t, ledger.Adjust("y", 100))
+	require.NoError(t, balanceService.Adjust("x", 100))
+	require.NoError(t, balanceService.Adjust("y", 100))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -36,12 +41,12 @@ func TestRunSagaAndRefunds(t *testing.T) {
 	}()
 
 	require.Eventually(t, func() bool {
-		x, err := ledger.Get("x")
+		x, err := balanceService.Get("x")
 		if err != nil {
 			return false
 		}
 
-		y, err := ledger.Get("y")
+		y, err := balanceService.Get("y")
 		if err != nil {
 			return false
 		}
