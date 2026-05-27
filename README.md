@@ -90,6 +90,7 @@ This architecture uses **Kong** as the Gateway so that all requests have a uniqu
 
 - To increase performance and reduce latency, we can implement an active-active (region-based) replication model for the core database; however, this will increase architectural complexity.
 - To ensure high-performance retrieval of transaction history, I have applied the CQRS pattern, integrating an OLAP database for use by the TX service.
+- Within this architecture, we can increase Kafka partition count and horizontally scale consumers/workers (and stateless services) to raise throughput and reduce processing latency. It just needs to add more detailed parameters to workers (e.g. regions).
 
 ### Full System Diagram
 
@@ -139,7 +140,7 @@ graph TD
         AnalyticsDB[(OLAP)]:::database
     end
 
-    Kafka -->|Read TXs| AnalyticsDB
+    Kafka -->|Read TXs<br>Kafka engine| AnalyticsDB
     AnalyticsDB -->|Get TX list| TX
 
     Kafka -->|Process TX| Core
