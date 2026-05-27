@@ -32,7 +32,8 @@ type container struct {
 
 	SagaWorker *saga.App
 
-	AccountRepo contracts.AccountRepository
+	AccountRepo    contracts.AccountRepository
+	AccountService contracts.AccountService
 }
 
 func InitContainer(ctx context.Context) container {
@@ -59,7 +60,8 @@ func InitContainer(ctx context.Context) container {
 		}
 	}()
 
-	accountRepo := datalayer.NewAccountRepository(balanceService)
+	accountRepo := datalayer.NewAccountRepository()
+	accountService := service.NewAccountService(accountRepo, balanceService)
 	olapRepo := datalayer.NewOlapRepository(q)
 
 	outboxRepo := datalayer.NewOutboxRepository()
@@ -88,6 +90,7 @@ func InitContainer(ctx context.Context) container {
 
 		SagaWorker: sagaWorker,
 
-		AccountRepo: accountRepo,
+		AccountRepo:    accountRepo,
+		AccountService: accountService,
 	}
 }

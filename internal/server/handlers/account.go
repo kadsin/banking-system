@@ -11,14 +11,14 @@ import (
 	"github.com/kadsin/banking-system/internal/server/requests"
 )
 
-func NewAccountHandler(repo contracts.AccountRepository) *AccountHandler {
+func NewAccountHandler(service contracts.AccountService) *AccountHandler {
 	return &AccountHandler{
-		repo: repo,
+		service: service,
 	}
 }
 
 type AccountHandler struct {
-	repo contracts.AccountRepository
+	service contracts.AccountService
 }
 
 func (h *AccountHandler) Create(c *fiber.Ctx) error {
@@ -39,7 +39,7 @@ func (h *AccountHandler) Create(c *fiber.Ctx) error {
 		Status:   domain.AccountStatusActive,
 	}
 
-	account, err = h.repo.Create(account)
+	account, err = h.service.Create(account)
 	if err != nil {
 		return err
 	}
@@ -53,7 +53,7 @@ func (h *AccountHandler) GetByID(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "id must be a valid UUID")
 	}
 
-	account, err := h.repo.GetByID(id)
+	account, err := h.service.GetByID(id)
 	if err != nil {
 		if errors.Is(err, datalayer.ErrAccountNotFound) {
 			return fiber.NewError(fiber.StatusNotFound, err.Error())

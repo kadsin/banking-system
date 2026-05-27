@@ -38,13 +38,13 @@ func TestTransferServiceCreatesPendingOutboxEvent(t *testing.T) {
 	require.Equal(t, "idem-1", tx.IdempotencyKey)
 	require.NotEmpty(t, tx.ID)
 
-	from, err := deps.accounts.GetByID(fromID)
+	from, err := deps.ledger.Get(fromID)
 	require.NoError(t, err)
-	require.Equal(t, int64(3500), from.Balance)
+	require.Equal(t, int64(3500), from)
 
-	to, err := deps.accounts.GetByID(toID)
+	to, err := deps.ledger.Get(toID)
 	require.NoError(t, err)
-	require.Equal(t, int64(2500), to.Balance)
+	require.Equal(t, int64(2500), to)
 
 	events, err := deps.outbox.ListPending(10)
 	require.NoError(t, err)
@@ -193,7 +193,7 @@ func newTransferServiceTestDeps(t *testing.T) (*transferService, transferService
 	transactions := datalayer.NewOlapRepository(nil)
 	ledger := datalayer.NewLedgerRepository(cache.New())
 	balance := NewBalanceService(ledger)
-	accounts := datalayer.NewAccountRepository(balance)
+	accounts := datalayer.NewAccountRepository()
 	outbox := datalayer.NewOutboxRepository()
 	idempotencies := datalayer.NewTxIdempotencyRepository(cache.New())
 

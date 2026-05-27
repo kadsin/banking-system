@@ -11,7 +11,7 @@ import (
 )
 
 type Dependencies struct {
-	Accounts   contracts.AccountRepository
+	Accounts   contracts.AccountService
 	Txs        contracts.OlapRepository
 	Transferer contracts.TransferService
 }

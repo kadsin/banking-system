@@ -18,7 +18,7 @@ func main() {
 	container := bootstrap.InitContainer(context.TODO())
 
 	app := bootstrap.SetupFiberApp(&server.Dependencies{
-		Accounts:   container.AccountRepo,
+		Accounts:   container.AccountService,
 		Txs:        container.OlapRepo,
 		Transferer: container.TransferService,
 	})
