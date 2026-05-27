@@ -9,6 +9,7 @@ import (
 	"github.com/kadsin/banking-system/internal/contracts"
 	"github.com/kadsin/banking-system/internal/datalayer"
 	"github.com/kadsin/banking-system/internal/domain"
+	"github.com/kadsin/banking-system/internal/queue"
 	"github.com/stretchr/testify/require"
 )
 
@@ -192,7 +193,10 @@ func newTransferServiceTestDeps(t *testing.T) (*transferService, transferService
 
 	transactions := datalayer.NewOlapRepository(nil)
 	ledger := datalayer.NewLedgerRepository(cache.New())
-	balance := NewBalanceService(ledger)
+	balance := NewBalanceService(
+		ledger,
+		NewHydratorService(ledger, datalayer.NewHydratorRepository(cache.New()), queue.New()),
+	)
 	accounts := datalayer.NewAccountRepository()
 	outbox := datalayer.NewOutboxRepository()
 	idempotencies := datalayer.NewTxIdempotencyRepository(cache.New())

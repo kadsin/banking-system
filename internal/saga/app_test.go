@@ -19,7 +19,10 @@ func TestRunSagaAndRefunds(t *testing.T) {
 	require.NoError(t, ledger.Set("x", 0))
 	require.NoError(t, ledger.Set("y", 0))
 
-	balanceService := service.NewBalanceService(ledger)
+	balanceService := service.NewBalanceService(
+		ledger,
+		service.NewHydratorService(ledger, datalayer.NewHydratorRepository(cache.New()), q),
+	)
 
 	app := New(balanceService, q)
 

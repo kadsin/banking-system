@@ -20,6 +20,10 @@ type container struct {
 	LedgerRepo     contracts.LedgerRepository
 	BalanceService contracts.BalanceService
 
+	HydratorRepo  contracts.HydratorRepository
+	HydratorCache *cache.Cache
+	Hydrator      contracts.HydratorService
+
 	TxIdempotencyCache *cache.Cache
 	TransferService    contracts.TransferService
 	TransactionService contracts.TransactionService
@@ -52,7 +56,12 @@ func InitContainer(ctx context.Context) container {
 
 	ledgerCache := cache.New()
 	ledgerRepo := datalayer.NewLedgerRepository(ledgerCache)
-	balanceService := service.NewBalanceService(ledgerRepo)
+
+	hydratorCache := cache.New()
+	hydratorRepo := datalayer.NewHydratorRepository(hydratorCache)
+	hydratorService := service.NewHydratorService(ledgerRepo, hydratorRepo, q)
+
+	balanceService := service.NewBalanceService(ledgerRepo, hydratorService)
 
 	sagaWorker := saga.New(balanceService, q)
 	go func() {
@@ -80,6 +89,10 @@ func InitContainer(ctx context.Context) container {
 		LedgerCache:    ledgerCache,
 		LedgerRepo:     ledgerRepo,
 		BalanceService: balanceService,
+
+		HydratorRepo:  hydratorRepo,
+		HydratorCache: hydratorCache,
+		Hydrator:      hydratorService,
 
 		TxIdempotencyCache: txIdempotencyCache,
 		TransferService:    transferService,
