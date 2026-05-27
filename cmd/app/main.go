@@ -18,9 +18,9 @@ func main() {
 	container := bootstrap.InitContainer(context.TODO())
 
 	app := bootstrap.SetupFiberApp(&server.Dependencies{
-		Accounts:   container.AccountService,
-		Txs:        container.OlapRepo,
-		Transferer: container.TransferService,
+		Accounts:     container.AccountService,
+		Transactions: container.TransactionService,
+		Transferer:   container.TransferService,
 	})
 	addr := fmt.Sprintf(":%s", config.Env.App.Port)
 

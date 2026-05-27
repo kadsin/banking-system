@@ -22,6 +22,7 @@ type container struct {
 
 	TxIdempotencyCache *cache.Cache
 	TransferService    contracts.TransferService
+	TransactionService contracts.TransactionService
 	TxIdempotencyRepo  contracts.TxIdempotencyRepository
 	OlapRepo           contracts.OlapRepository
 	OutboxRepo         contracts.OutboxRepository
@@ -70,6 +71,7 @@ func InitContainer(ctx context.Context) container {
 	txIdempotencyRepo := datalayer.NewTxIdempotencyRepository(txIdempotencyCache)
 
 	transferService := service.NewTransferService(accountRepo, olapRepo, balanceService, outboxRepo, txIdempotencyRepo)
+	transactionService := service.NewTransactionService(olapRepo)
 
 	return container{
 		Queue: q,
@@ -80,6 +82,7 @@ func InitContainer(ctx context.Context) container {
 
 		TxIdempotencyCache: txIdempotencyCache,
 		TransferService:    transferService,
+		TransactionService: transactionService,
 		TxIdempotencyRepo:  txIdempotencyRepo,
 		OlapRepo:           olapRepo,
 		OutboxRepo:         outboxRepo,

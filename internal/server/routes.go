@@ -11,9 +11,9 @@ import (
 )
 
 type Dependencies struct {
-	Accounts   contracts.AccountService
-	Txs        contracts.OlapRepository
-	Transferer contracts.TransferService
+	Accounts     contracts.AccountService
+	Transactions contracts.TransactionService
+	Transferer   contracts.TransferService
 }
 
 func SetupRoutes(app *fiber.App, deps *Dependencies) {
@@ -30,7 +30,7 @@ func SetupRoutes(app *fiber.App, deps *Dependencies) {
 	auth.Post("/accounts", accountHandler.Create)
 	auth.Get("/accounts/:id", accountHandler.GetByID)
 
-	transactionHandler := handlers.NewTransactionHandler(deps.Txs, deps.Transferer)
+	transactionHandler := handlers.NewTransactionHandler(deps.Transactions, deps.Transferer)
 	auth.Post("/transactions/transfer", transactionHandler.Transfer)
 	auth.Get("/transactions/:id", transactionHandler.GetByID)
 	auth.Get("/transactions/:account_id/history", transactionHandler.History)

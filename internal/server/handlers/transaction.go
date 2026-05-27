@@ -11,16 +11,16 @@ import (
 	"github.com/kadsin/banking-system/internal/service"
 )
 
-func NewTransactionHandler(txRepo contracts.OlapRepository, transfer contracts.TransferService) *TransactionHandler {
+func NewTransactionHandler(transactions contracts.TransactionService, transfer contracts.TransferService) *TransactionHandler {
 	return &TransactionHandler{
-		txRepo:   txRepo,
-		transfer: transfer,
+		transactions: transactions,
+		transfer:     transfer,
 	}
 }
 
 type TransactionHandler struct {
-	txRepo   contracts.OlapRepository
-	transfer contracts.TransferService
+	transactions contracts.TransactionService
+	transfer     contracts.TransferService
 }
 
 func (h *TransactionHandler) Transfer(c *fiber.Ctx) error {
@@ -68,7 +68,7 @@ func (h *TransactionHandler) GetByID(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "id must be a valid UUID")
 	}
 
-	tx, err := h.txRepo.GetByID(id)
+	tx, err := h.transactions.GetByID(id)
 	if err != nil {
 		if errors.Is(err, datalayer.ErrTransactionNotFound) {
 			return fiber.NewError(fiber.StatusNotFound, err.Error())
@@ -86,7 +86,7 @@ func (h *TransactionHandler) History(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "account_id must be a valid UUID")
 	}
 
-	history, err := h.txRepo.ListByAccountID(accountID)
+	history, err := h.transactions.History(accountID)
 	if err != nil {
 		return err
 	}
