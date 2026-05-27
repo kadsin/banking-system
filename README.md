@@ -82,7 +82,7 @@ graph LR
     Saga -->|Refund| Bal[Balance Service]
 ```
 
-#### A user reports that their money was not transferred correctly.
+#### A user reports that their money was not transferred correctly (Observability).
 
 This architecture uses **Kong** as the Gateway so that all requests have a unique **Request ID**. This ID is stored and propagated through the system, allowing us to trace logs effectively. Additionally, we use **Sentry** for real-time exception tracking and **Prometheus** for monitoring system health and consumer lag.
 
@@ -162,4 +162,219 @@ graph TD
     Hyd -.->|Warmup cache| BalRedis
 
     Acc --- AccDB[(Account DB)]:::database
+```
+
+## How To Run
+
+### 1. Prepare the environment
+
+Copy the example environment file and adjust values if needed.
+
+```bash
+cp .env.example .env
+```
+
+Example `.env`:
+
+```env
+APP_NAME="BankingSystem"
+APP_ENV=dev
+APP_DEBUG=true
+
+DOC_AUTH_USERNAME=admin
+DOC_AUTH_PASSWORD=123456
+
+AUTH_JWT_SECRET=change_me
+AUTH_ACCESS_TTL_MIN=60
+
+TOPIC_TRANSACTIONS=prod.tx
+TOPIC_FAILED=prod.failed
+
+TREASURY_INITIAL_BALANCE=1000000
+```
+
+**Note**: `TREASURY_INITIAL_BALANCE` is the banking system’s initial treasury balance.
+
+### 2. Install dependencies
+
+```bash
+make init
+```
+
+### 3. Run the application
+
+```bash
+make app
+```
+
+This command builds the application into `./build/app` and starts the HTTP server.
+
+### 4. Run tests
+
+Create a .env.testing file and run all tests:
+
+```bash
+cp .env.example .env
+make test
+```
+
+Test command documentation:
+
+```bash
+make test:help
+```
+
+### 5. Swagger UI
+
+After starting the application, the Swagger UI is available at:
+
+```text
+http://localhost:3000/docs
+```
+
+Swagger UI credentials are controlled with:
+
+```env
+DOC_AUTH_USERNAME=admin
+DOC_AUTH_PASSWORD=123456
+```
+
+## Implementation
+
+### Testing
+
+This project needs increased test coverage, but in a real-world scenario, it would also require extensive integration and stress testing.
+
+### Abstractions
+
+| Interface                 | Purpose                                             |
+| ------------------------- | --------------------------------------------------- |
+| `AccountRepository`       | Account CRUD operations                             |
+| `BalanceService`          | Balance queries and adjustments with cache handling |
+| `TransferService`         | Fund transfer orchestration                         |
+| `LedgerRepository`        | Redis-backed balance ledger                         |
+| `OutboxRepository`        | Event outbox for CDC pattern                        |
+| `OlapRepository`          | Transaction history queries (CQRS)                  |
+| `HydratorService`         | Cache repopulation on misses                        |
+| `TxIdempotencyRepository` | Idempotency key tracking                            |
+
+### Core
+
+| Implementation            | Location                                          | Details                                                   |
+| ------------------------- | ------------------------------------------------- | --------------------------------------------------------- |
+| `AccountService`          | `internal/service/account.go`                     | Creates accounts, validates balance, initiates transfers  |
+| `BalanceService`          | `internal/service/balance.go`                     | Get/Adjust balance with automatic hydration on cache miss |
+| `TransferService`         | `internal/service/transfer.go`                    | Validates funds, checks idempotency, writes outbox events |
+| `Hydrator`                | `internal/service/hydrator.go`                    | Consumes Kafka events, maintains balance snapshots        |
+| `LedgerRepository`        | `internal/datalayer/ledger_repository.go`         | Redis-backed atomic balance updates                       |
+| `OutboxRepository`        | `internal/datalayer/outbox_repository.go`         | Persists events for CDC                                   |
+| `OlapRepository`          | `internal/datalayer/olap_repository.go`           | Stores transactions for analytics                         |
+| `TxIdempotencyRepository` | `internal/datalayer/tx_idempotency_repository.go` | Redis-backed idempotency key storage                      |
+| `AccountRepository`       | `internal/datalayer/account_repository.go`        | Account persistence                                       |
+
+### Transfer flow
+
+```mermaid
+graph TD
+    subgraph Client["Client Request"]
+        A["Client Initiates Transfer"]
+    end
+
+    subgraph TXService["TX Service Processing"]
+        B["Check Idempotency<br/>(TxIdempotencyRepository)"]
+        C["Validate Accounts<br/>(AccountRepository)"]
+        D["Check Account Status<br/>(Not Blocked)"]
+        E["Validate Balance<br/>(BalanceService)"]
+        F["Create OutboxEvent<br/>(OutboxRepository)"]
+        G["Adjust Balance<br/>From: -Amount<br/>To: +Amount"]
+        H["Store Idempotency Key"]
+    end
+
+    subgraph Queue["Event Streaming"]
+        I["Pull from Outbox<br>Publish to Queue<br/>(Topic: Transactions)"]
+        J["Message Persisted<br/>with Offset"]
+    end
+
+    subgraph CoreWorker["Core Worker Processing"]
+        K["Fetch batch<br>from queue"]
+        L["Unmarshal Transaction"]
+        M["Adjust MainDB<br/>From: -Amount<br/>To: +Amount"]
+        N{Success?}
+        O["Mark Complete<br/>(Status: Completed)"]
+        P["Publish Failed Event<br/>(Topic: Failed)"]
+    end
+
+    subgraph MainDB["Persistence"]
+        Q["BulkCreate Transactions<br/>(MainTransactionRepository)"]
+        R["Commit queue offset<br/>(Kafka offset)"]
+    end
+
+    subgraph Saga["Reconciliation - On Failure"]
+        S["Saga Worker<br/>(Topic: Failed)"]
+        T["Unmarshal failed TX"]
+        U["Refund both accounts<br/>From: +Amount<br/>To: -Amount"]
+        V["Commit failed<br>queue Offset"]
+    end
+
+    subgraph Cache["Cache Handling"]
+        W["On Balance Cache Miss"]
+        X["Hydrator.Repopulate"]
+        Y["Fetch Snapshots<br/>(HydratorRepository)"]
+        Z["Replay queue events<br/>from last offset"]
+        AA["Compute Balance"]
+        AB["Update Ledger"]
+        AC["Save New Snapshot"]
+    end
+
+    A -->|1| B
+    B -->|2| C
+    C -->|3| D
+    D -->|4| E
+    E -->|5| F
+    F -->|6| G
+    G -->|7| H
+    H -->|8| I
+    I -->|9| J
+
+    J -->|10| K
+    K -->|11| L
+    L -->|12| M
+    M -->|13| N
+    N -->|Success| O
+    N -->|Failure| P
+    O -->|14| Q
+    P -->|14b| Q
+    Q -->|15| R
+
+    P -->|16| S
+    S -->|17| T
+    T -->|18| U
+    U -->|19| V
+
+    E -.->|Cache Miss| W
+    W -->|20| X
+    X -->|21| Y
+    Y -->|22| Z
+    Z -->|23| AA
+    AA -->|24| AB
+    AB -->|25| AC
+    AC -.->|Resume| E
+
+    classDef client fill:#4A90E2,color:#fff
+    classDef service fill:#7ED321,color:#fff
+    classDef queue fill:#8e44ad,color:#fff
+    classDef worker fill:#d68910,color:#fff
+    classDef db fill:#1e8449,color:#fff
+    classDef saga fill:#cb4335,color:#fff
+    classDef cache fill:#F5A623,color:#fff
+    classDef decision fill:#FFD700,color:#000
+
+    class A client
+    class B,C,D,E,F,G,H service
+    class I,J queue
+    class K,L,M,O worker
+    class Q,R db
+    class S,T,U,V saga
+    class W,X,Y,Z,AA,AB,AC cache
+    class N decision
 ```
