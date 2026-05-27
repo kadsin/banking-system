@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"errors"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/kadsin/banking-system/internal/contracts"
 	"github.com/kadsin/banking-system/internal/datalayer"
+	"github.com/kadsin/banking-system/internal/domain"
 	"github.com/kadsin/banking-system/internal/server/requests"
 	"github.com/kadsin/banking-system/internal/service"
 )
@@ -59,7 +61,24 @@ func (h *TransactionHandler) Transfer(c *fiber.Ctx) error {
 		}
 	}
 
-	return c.Status(fiber.StatusAccepted).JSON(tx)
+	type TransferResponse struct {
+		ID             string                   `json:"id"`
+		FromAccountID  string                   `json:"from_account"`
+		ToAccountID    string                   `json:"to_account"`
+		Amount         int64                    `json:"amount"`
+		Status         domain.TransactionStatus `json:"status"`
+		IdempotencyKey string                   `json:"idempotency_key"`
+		Timestamp      string                   `json:"timestamp"`
+	}
+	return c.Status(fiber.StatusAccepted).JSON(TransferResponse{
+		ID:             tx.ID,
+		FromAccountID:  tx.FromAccountID,
+		ToAccountID:    tx.ToAccountID,
+		Amount:         tx.Amount,
+		Status:         tx.Status,
+		IdempotencyKey: tx.IdempotencyKey,
+		Timestamp:      tx.Timestamp.Format(time.RFC3339),
+	})
 }
 
 func (h *TransactionHandler) GetByID(c *fiber.Ctx) error {
@@ -77,7 +96,24 @@ func (h *TransactionHandler) GetByID(c *fiber.Ctx) error {
 		return err
 	}
 
-	return c.JSON(tx)
+	type GetTransactionByIDResponse struct {
+		ID             string                   `json:"id"`
+		FromAccountID  string                   `json:"from_account"`
+		ToAccountID    string                   `json:"to_account"`
+		Amount         int64                    `json:"amount"`
+		Status         domain.TransactionStatus `json:"status"`
+		IdempotencyKey string                   `json:"idempotency_key"`
+		Timestamp      string                   `json:"timestamp"`
+	}
+	return c.JSON(GetTransactionByIDResponse{
+		ID:             tx.ID,
+		FromAccountID:  tx.FromAccountID,
+		ToAccountID:    tx.ToAccountID,
+		Amount:         tx.Amount,
+		Status:         tx.Status,
+		IdempotencyKey: tx.IdempotencyKey,
+		Timestamp:      tx.Timestamp.Format(time.RFC3339),
+	})
 }
 
 func (h *TransactionHandler) History(c *fiber.Ctx) error {
@@ -91,5 +127,28 @@ func (h *TransactionHandler) History(c *fiber.Ctx) error {
 		return err
 	}
 
-	return c.JSON(history)
+	type TransactionHistoryItemResponse struct {
+		ID             string                   `json:"id"`
+		FromAccountID  string                   `json:"from_account"`
+		ToAccountID    string                   `json:"to_account"`
+		Amount         int64                    `json:"amount"`
+		Status         domain.TransactionStatus `json:"status"`
+		IdempotencyKey string                   `json:"idempotency_key"`
+		Timestamp      string                   `json:"timestamp"`
+	}
+	res := make([]TransactionHistoryItemResponse, 0, len(history))
+
+	for _, tx := range history {
+		res = append(res, TransactionHistoryItemResponse{
+			ID:             tx.ID,
+			FromAccountID:  tx.FromAccountID,
+			ToAccountID:    tx.ToAccountID,
+			Amount:         tx.Amount,
+			Status:         tx.Status,
+			IdempotencyKey: tx.IdempotencyKey,
+			Timestamp:      tx.Timestamp.Format(time.RFC3339),
+		})
+	}
+
+	return c.JSON(res)
 }

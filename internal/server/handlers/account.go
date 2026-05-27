@@ -44,7 +44,18 @@ func (h *AccountHandler) Create(c *fiber.Ctx) error {
 		return err
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(account)
+	type CreateAccountResponse struct {
+		ID       string               `json:"id"`
+		Balance  int64                `json:"balance"`
+		Currency string               `json:"currency"`
+		Status   domain.AccountStatus `json:"status"`
+	}
+	return c.Status(fiber.StatusCreated).JSON(CreateAccountResponse{
+		ID:       account.ID,
+		Balance:  account.Balance,
+		Currency: account.Currency,
+		Status:   account.Status,
+	})
 }
 
 func (h *AccountHandler) GetByID(c *fiber.Ctx) error {
@@ -62,5 +73,16 @@ func (h *AccountHandler) GetByID(c *fiber.Ctx) error {
 		return err
 	}
 
-	return c.JSON(account)
+	type GetAccountByIDResponse struct {
+		ID       string               `json:"id"`
+		Balance  int64                `json:"balance"`
+		Currency string               `json:"currency"`
+		Status   domain.AccountStatus `json:"status"`
+	}
+	return c.JSON(GetAccountByIDResponse{
+		ID:       account.ID,
+		Balance:  account.Balance,
+		Currency: account.Currency,
+		Status:   account.Status,
+	})
 }

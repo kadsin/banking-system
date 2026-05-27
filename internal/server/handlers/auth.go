@@ -23,7 +23,10 @@ func (a *AuthHandler) Login(c *fiber.Ctx) error {
 		return err
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"token": token,
+	type LoginResponse struct {
+		Token string `json:"token"`
+	}
+	return c.Status(fiber.StatusCreated).JSON(LoginResponse{
+		Token: token,
 	})
 }
