@@ -34,6 +34,8 @@ func TestPullAndProcessBulkInsertAndAdjustBalances(t *testing.T) {
 	require.Len(t, txs, 2)
 	require.Equal(t, "tx-1", txs[0].ID)
 	require.Equal(t, "tx-2", txs[1].ID)
+	require.Equal(t, "COMPLETED", string(txs[0].Status))
+	require.Equal(t, "COMPLETED", string(txs[1].Status))
 
 	aBalance, err := ledgerRepo.Get("a")
 	require.NoError(t, err)
@@ -49,7 +51,7 @@ func TestPullAndProcessBulkInsertAndAdjustBalances(t *testing.T) {
 
 	remaining, err := q.Fetch(topic, 10)
 	require.NoError(t, err)
-	require.Len(t, remaining, 0)
+	require.Len(t, remaining, 2)
 }
 
 func TestPullAndProcessInvalidPayloadDoesNotCommit(t *testing.T) {
@@ -123,6 +125,32 @@ func TestPullAndProcessPublishesFailedEventOnAdjustmentError(t *testing.T) {
 	failed, err := q.Fetch(failedTopic, 10)
 	require.NoError(t, err)
 	require.Len(t, failed, 1)
+}
+
+func TestPullAndProcessIgnoresCompletedStatusEvents(t *testing.T) {
+	q := queue.New()
+	txRepo := datalayer.NewMainTransactionRepository()
+	ledgerRepo := datalayer.NewMainLedgerRepository()
+	app := New(txRepo, ledgerRepo, q)
+
+	topic := config.Env.Topics.Transactions
+
+	_, err := q.Publish(topic, []byte(`{"id":"tx-1","from_account":"a","to_account":"b","amount":100,"status":"PENDING"}`))
+	require.NoError(t, err)
+	_, err = q.Publish(topic, []byte(`{"id":"tx-1","from_account":"a","to_account":"b","amount":100,"status":"COMPLETED"}`))
+	require.NoError(t, err)
+
+	n, err := app.PullAndProcess(10)
+	require.NoError(t, err)
+	require.Equal(t, 2, n)
+
+	aBalance, err := ledgerRepo.Get("a")
+	require.NoError(t, err)
+	require.Equal(t, int64(-100), aBalance)
+
+	bBalance, err := ledgerRepo.Get("b")
+	require.NoError(t, err)
+	require.Equal(t, int64(100), bBalance)
 }
 
 type failingLedgerRepository struct{}

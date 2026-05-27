@@ -64,11 +64,11 @@ func (a *App) PullAndProcess(limit int) (int, error) {
 		transactions = append(transactions, tx)
 	}
 
-	if err := a.txRepo.BulkCreate(transactions); err != nil {
-		return 0, err
-	}
-
 	for i, tx := range transactions {
+		if tx.Status == domain.TransactionStatusCompleted || tx.Status == domain.TransactionStatusFailed {
+			continue
+		}
+
 		if err := a.balanceRepo.Adjust(tx.FromAccountID, -tx.Amount); err != nil {
 			transactions[i].Status = domain.TransactionStatusFailed
 
@@ -86,6 +86,15 @@ func (a *App) PullAndProcess(limit int) (int, error) {
 			}
 			continue
 		}
+
+		transactions[i].Status = domain.TransactionStatusCompleted
+		if err := a.publishStatus(transactions[i]); err != nil {
+			return 0, err
+		}
+	}
+
+	if err := a.txRepo.BulkCreate(transactions); err != nil {
+		return 0, err
 	}
 
 	lastOffset := messages[len(messages)-1].Offset
@@ -103,5 +112,15 @@ func (a *App) publishFailed(tx domain.Transaction) error {
 	}
 
 	_, err = a.q.Publish(config.Env.Topics.Failed, payload)
+	return err
+}
+
+func (a *App) publishStatus(tx domain.Transaction) error {
+	payload, err := json.Marshal(tx)
+	if err != nil {
+		return err
+	}
+
+	_, err = a.q.Publish(config.Env.Topics.Transactions, payload)
 	return err
 }

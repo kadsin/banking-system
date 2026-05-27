@@ -69,6 +69,12 @@ func (r *OlapRepository) pullFromQueue(q *queue.Queue, topic string, limit int) 
 			return decodeErr
 		}
 
+		if existing, ok := r.transactions[tx.ID]; ok {
+			if existing.Status == domain.TransactionStatusCompleted || existing.Status == domain.TransactionStatusFailed {
+				tx.Status = existing.Status
+			}
+		}
+
 		r.transactions[tx.ID] = tx
 		r.offsetByTopic[topic] = message.Offset
 	}
