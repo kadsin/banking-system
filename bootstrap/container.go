@@ -62,7 +62,6 @@ func InitContainer(ctx context.Context) container {
 	}()
 
 	accountRepo := datalayer.NewAccountRepository()
-	accountService := service.NewAccountService(accountRepo, balanceService)
 	olapRepo := datalayer.NewOlapRepository(q)
 
 	outboxRepo := datalayer.NewOutboxRepository()
@@ -73,7 +72,9 @@ func InitContainer(ctx context.Context) container {
 	transferService := service.NewTransferService(accountRepo, olapRepo, balanceService, outboxRepo, txIdempotencyRepo)
 	transactionService := service.NewTransactionService(olapRepo)
 
-	return container{
+	accountService := service.NewAccountService(accountRepo, balanceService, transferService)
+
+	c := container{
 		Queue: q,
 
 		LedgerCache:    ledgerCache,
@@ -96,4 +97,11 @@ func InitContainer(ctx context.Context) container {
 		AccountRepo:    accountRepo,
 		AccountService: accountService,
 	}
+
+	log.Println("Container initialized successfully")
+
+	initSystemAccount(c)
+	log.Println("System account initialized successfully")
+
+	return c
 }

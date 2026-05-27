@@ -52,6 +52,10 @@ var Env struct {
 		Failed       string `env:"TOPIC_FAILED"`
 	}
 
+	Treasury struct {
+		InitialBalance int64 `env:"TREASURY_INITIAL_BALANCE,default=1000000000000"`
+	}
+
 	Auth struct {
 		JWTSecret         string `env:"AUTH_JWT_SECRET"`
 		AccessTokenTTLMin int    `env:"AUTH_ACCESS_TTL_MIN,default=60"`
