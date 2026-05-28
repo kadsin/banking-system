@@ -84,7 +84,10 @@ graph LR
 
 #### A user reports that their money was not transferred correctly (Observability).
 
-This architecture uses **Kong** as the Gateway so that all requests have a unique **Request ID**. This ID is stored and propagated through the system, allowing us to trace logs effectively. Additionally, we use **Sentry** for real-time exception tracking and **Prometheus** for monitoring system health and consumer lag.
+This architecture uses **Kong** as the API Gateway to ensure that every request is assigned a unique **Request ID**. This ID is stored and propagated throughout the system, enabling effective log tracing and request tracking across services.
+In addition, we use **Sentry** for real-time exception tracking and **Prometheus** for monitoring system health and consumer lag.
+
+The system should log all events to provide full visibility into failures and help identify what happened during each incident.
 
 ### Notes
 
